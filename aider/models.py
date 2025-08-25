@@ -311,7 +311,7 @@ model_info_manager = ModelInfoManager()
 
 class Model(ModelSettings):
     def __init__(
-        self, model, weak_model=None, editor_model=None, editor_edit_format=None, verbose=False
+        self, model, weak_model=None, editor_model=None, editor_edit_format=None, context_model=None, verbose=False
     ):
         # Map any alias to its canonical name
         model = MODEL_ALIASES.get(model, model)
@@ -322,6 +322,7 @@ class Model(ModelSettings):
         self.max_chat_history_tokens = 1024
         self.weak_model = None
         self.editor_model = None
+        self.context_model = None
 
         # Find the extra settings
         self.extra_model_settings = next(
@@ -352,7 +353,10 @@ class Model(ModelSettings):
             self.get_editor_model(editor_model, editor_edit_format)
 
         # Initialize context model
-        self.context_model = None
+        if context_model is False:
+            self.context_model_name = None
+        else:
+            self.get_context_model(context_model)
 
     def get_model_info(self, model):
         return model_info_manager.get_model_info(model)

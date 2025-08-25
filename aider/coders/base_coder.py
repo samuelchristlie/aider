@@ -244,10 +244,17 @@ class Coder:
         lines.append(output)
 
         if self.edit_format == "architect":
-            output = (
-                f"Editor model: {main_model.editor_model.name} with"
-                f" {main_model.editor_edit_format} edit format"
-            )
+            if main_model.editor_model and main_model.editor_edit_format:
+                output = (
+                    f"Editor model: {main_model.editor_model.name} with"
+                    f" {main_model.editor_edit_format} edit format"
+                )
+            elif main_model.editor_model:
+                output = f"Editor model: {main_model.editor_model.name} with unknown edit format"
+            elif main_model.editor_edit_format:
+                output = f"Editor model: None with {main_model.editor_edit_format} edit format"
+            else:
+                output = "Editor model: None with unknown edit format"
             lines.append(output)
 
         # Show context model if it's different from main model
