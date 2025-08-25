@@ -1611,27 +1611,85 @@ class Commands:
         self.io.tool_output(announcements)
 
     def cmd_reasoning_effort(self, args):
-        "Set the reasoning effort level (values: number or low/medium/high depending on model)"
-        model = self.coder.main_model
+        "Set the reasoning effort for models that support it"
 
-        if not args.strip():
-            # Display current value if no args are provided
-            reasoning_value = model.get_reasoning_effort()
-            if reasoning_value is None:
-                self.io.tool_output("Reasoning effort is not currently set.")
-            else:
-                self.io.tool_output(f"Current reasoning effort: {reasoning_value}")
+        effort = args.strip()
+        if not effort:
+            self.io.tool_output("Please specify a reasoning effort level (e.g., 'low', 'medium', 'high')")
             return
 
-        value = args.strip()
-        model.set_reasoning_effort(value)
-        reasoning_value = model.get_reasoning_effort()
-        self.io.tool_output(f"Set reasoning effort to {reasoning_value}")
-        self.io.tool_output()
+        try:
+            self.coder.main_model.set_reasoning_effort(effort)
+            self.io.tool_output(f"Reasoning effort set to: {effort}")
+        except Exception as e:
+            self.io.tool_error(f"Failed to set reasoning effort: {e}")
 
-        # Output announcements
-        announcements = "\n".join(self.coder.get_announcements())
-        self.io.tool_output(announcements)
+    def cmd_compress(self, args):
+        "Manually trigger chat history summarization"
+
+        if not self.coder.done_messages:
+            self.io.tool_output("No chat history to compress.")
+            return
+
+        try:
+            # Get the current token count
+            msgs = self.coder.done_messages + self.coder.cur_messages
+            if msgs:
+                tokens_before = self.coder.main_model.token_count(msgs)
+            else:
+                tokens_before = 0
+
+            # Check if summarization is needed
+            if not self.coder.summarizer.too_big(self.coder.done_messages):
+                self.io.tool_output("Chat history is not too large to require compression.")
+                return
+
+            # Show which model will be used for compression
+            weak_model_name = self.coder.main_model.weak_model.name
+
+            # Use spinner during compression
+            from aider.waiting import WaitingSpinner
+            spinner = WaitingSpinner(f"Compressing chat history with {weak_model_name}")
+            spinner.start()
+
+            try:
+                # Trigger summarization
+                summarized = self.coder.summarizer.summarize(self.coder.done_messages)
+                
+                # Update messages with summarized content
+                if summarized:
+                    old_count = len(self.coder.done_messages)
+                    self.coder.done_messages = summarized
+                    new_count = len(self.coder.done_messages)
+                    
+                    # Get token count after summarization
+                    msgs_after = self.coder.done_messages + self.coder.cur_messages
+                    if msgs_after:
+                        tokens_after = self.coder.main_model.token_count(msgs_after)
+                    else:
+                        tokens_after = 0
+                    
+                    # Store results to print after stopping spinner
+                    result_lines = [
+                        f"Chat history compressed: {old_count} → {new_count} messages",
+                        f"Tokens reduced: {tokens_before} → {tokens_after}"
+                    ]
+                else:
+                    # Store results to print after stopping spinner
+                    result_lines = ["Compression completed with no changes."]
+            finally:
+                spinner.stop()
+            
+            # Print results after spinner is stopped
+            for line in result_lines:
+                self.io.tool_output(line)
+
+        except Exception as e:
+            # Make sure spinner is stopped before printing error
+            if 'spinner' in locals():
+                spinner.stop()
+            self.io.tool_error(f"Compression failed: {e}")
+            self.io.tool_error("Chat history remains unchanged.")
 
     def cmd_copy_context(self, args=None):
         """Copy the current chat context as markdown, suitable to paste into a web UI"""
