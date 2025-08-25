@@ -197,6 +197,12 @@ def get_parser(default_config_files, git_root):
         help="Specify the model to use for editor tasks (default depends on --model)",
     )
     group.add_argument(
+        "--context-model",
+        metavar="CONTEXT_MODEL",
+        default=None,
+        help="Specify the model to use for /ask and other context-related tasks (default depends on --model)",
+    )
+    group.add_argument(
         "--editor-edit-format",
         metavar="EDITOR_EDIT_FORMAT",
         choices=edit_format_choices,

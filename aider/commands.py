@@ -95,8 +95,9 @@ class Commands:
 
         model = models.Model(
             model_name,
-            editor_model=self.coder.main_model.editor_model.name,
+            editor_model=self.coder.main_model.editor_model.name if self.coder.main_model.editor_model else None,
             weak_model=self.coder.main_model.weak_model.name,
+            context_model=self.coder.main_model.context_model.name if self.coder.main_model.context_model and self.coder.main_model.context_model is not self.coder.main_model else None,
         )
         models.sanity_check_models(self.io, model)
 
@@ -119,6 +120,7 @@ class Commands:
             self.coder.main_model.name,
             editor_model=model_name,
             weak_model=self.coder.main_model.weak_model.name,
+            context_model=self.coder.main_model.context_model.name if self.coder.main_model.context_model and self.coder.main_model.context_model is not self.coder.main_model else None,
         )
         models.sanity_check_models(self.io, model)
         raise SwitchCoder(main_model=model)
@@ -129,8 +131,22 @@ class Commands:
         model_name = args.strip()
         model = models.Model(
             self.coder.main_model.name,
-            editor_model=self.coder.main_model.editor_model.name,
+            editor_model=self.coder.main_model.editor_model.name if self.coder.main_model.editor_model else None,
             weak_model=model_name,
+            context_model=self.coder.main_model.context_model.name if self.coder.main_model.context_model and self.coder.main_model.context_model is not self.coder.main_model else None,
+        )
+        models.sanity_check_models(self.io, model)
+        raise SwitchCoder(main_model=model)
+
+    def cmd_context_model(self, args):
+        "Switch the Context Model to a new LLM"
+
+        model_name = args.strip()
+        model = models.Model(
+            self.coder.main_model.name,
+            editor_model=self.coder.main_model.editor_model.name if self.coder.main_model.editor_model else None,
+            weak_model=self.coder.main_model.weak_model.name,
+            context_model=model_name,
         )
         models.sanity_check_models(self.io, model)
         raise SwitchCoder(main_model=model)

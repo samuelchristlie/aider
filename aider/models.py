@@ -126,6 +126,7 @@ class ModelSettings:
     streaming: bool = True
     editor_model_name: Optional[str] = None
     editor_edit_format: Optional[str] = None
+    context_model_name: Optional[str] = None
     reasoning_tag: Optional[str] = None
     remove_reasoning: Optional[str] = None  # Deprecated alias for reasoning_tag
     system_prompt_prefix: Optional[str] = None
@@ -349,6 +350,9 @@ class Model(ModelSettings):
             self.editor_model_name = None
         else:
             self.get_editor_model(editor_model, editor_edit_format)
+
+        # Initialize context model
+        self.context_model = None
 
     def get_model_info(self, model):
         return model_info_manager.get_model_info(model)
@@ -607,6 +611,25 @@ class Model(ModelSettings):
                 self.editor_edit_format = "editor-" + self.editor_edit_format
 
         return self.editor_model
+
+    def get_context_model(self, provided_context_model_name):
+        # If context_model_name is provided, override the model settings
+        if provided_context_model_name:
+            self.context_model_name = provided_context_model_name
+
+        if not self.context_model_name:
+            # If no context model specified, use the main model as fallback
+            self.context_model = self
+        elif self.context_model_name == self.name:
+            self.context_model = self
+        else:
+            self.context_model = Model(
+                self.context_model_name,
+                weak_model=False,
+                editor_model=False,
+            )
+
+        return self.context_model
 
     def tokenizer(self, text):
         return litellm.encode(model=self.name, text=text)

@@ -827,6 +827,9 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
         verbose=args.verbose,
     )
 
+    # Initialize context model
+    main_model.get_context_model(args.context_model)
+
     # Check if deprecated remove_reasoning is set
     if main_model.remove_reasoning is not None:
         io.tool_warning(

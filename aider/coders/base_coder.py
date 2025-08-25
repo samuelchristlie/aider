@@ -189,7 +189,14 @@ class Coder:
 
         for coder in coders.__all__:
             if hasattr(coder, "edit_format") and coder.edit_format == edit_format:
-                res = coder(main_model, io, **kwargs)
+                # Use context model for ask and context coders if available and different from main model
+                if (edit_format in ("ask", "context") and 
+                    hasattr(main_model, 'context_model') and 
+                    main_model.context_model is not None and
+                    main_model.context_model is not main_model):
+                    res = coder(main_model.context_model, io, **kwargs)
+                else:
+                    res = coder(main_model, io, **kwargs)
                 res.original_kwargs = dict(kwargs)
                 return res
 
@@ -241,6 +248,13 @@ class Coder:
                 f"Editor model: {main_model.editor_model.name} with"
                 f" {main_model.editor_edit_format} edit format"
             )
+            lines.append(output)
+
+        # Show context model if it's different from main model
+        if (hasattr(main_model, 'context_model') and 
+            main_model.context_model and 
+            main_model.context_model is not main_model):
+            output = f"Context model: {main_model.context_model.name}"
             lines.append(output)
 
         if weak_model is not main_model:
