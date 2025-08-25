@@ -1645,11 +1645,11 @@ class Commands:
                 return
 
             # Show which model will be used for compression
-            weak_model_name = self.coder.main_model.weak_model.name
+            # weak_model_name = self.coder.main_model.weak_model.name
 
             # Use spinner during compression
             from aider.waiting import WaitingSpinner
-            spinner = WaitingSpinner(f"Compressing chat history with {weak_model_name}")
+            spinner = WaitingSpinner("Compressing chat history")
             spinner.start()
 
             try:

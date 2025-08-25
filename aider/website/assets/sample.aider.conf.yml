@@ -107,6 +107,9 @@
 ## Specify the model to use for editor tasks (default depends on --model)
 #editor-model: xxx
 
+## Specify the model to use for /ask and other context-related tasks (default depends on --model)
+#context-model: xxx
+
 ## Specify the edit format for the editor model (default: depends on editor model)
 #editor-edit-format: xxx
 

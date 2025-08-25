@@ -949,10 +949,17 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
         original_read_only_fnames=read_only_fnames,
     )
 
-    summarizer = ChatSummary(
-        [main_model.weak_model, main_model],
-        args.max_chat_history_tokens or main_model.max_chat_history_tokens,
-    )
+    # Use context model for summarization if available, otherwise fall back to weak model
+    if main_model.context_model:
+        summarizer = ChatSummary(
+            [main_model.context_model, main_model.weak_model, main_model],
+            args.max_chat_history_tokens or main_model.max_chat_history_tokens,
+        )
+    else:
+        summarizer = ChatSummary(
+            [main_model.weak_model, main_model],
+            args.max_chat_history_tokens or main_model.max_chat_history_tokens,
+        )
 
     if args.cache_prompts and args.map_refresh == "auto":
         args.map_refresh = "files"
