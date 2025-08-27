@@ -190,8 +190,8 @@ class Coder:
         for coder in coders.__all__:
             if hasattr(coder, "edit_format") and coder.edit_format == edit_format:
                 # Use context model for ask and context coders if available and different from main model
-                if (edit_format in ("ask", "context") and 
-                    hasattr(main_model, 'context_model') and 
+                if (edit_format in ("ask", "context") and
+                    hasattr(main_model, 'context_model') and
                     main_model.context_model is not None and
                     main_model.context_model is not main_model):
                     res = coder(main_model.context_model, io, **kwargs)
@@ -258,8 +258,8 @@ class Coder:
             lines.append(output)
 
         # Show context model if it's different from main model
-        if (hasattr(main_model, 'context_model') and 
-            main_model.context_model and 
+        if (hasattr(main_model, 'context_model') and
+            main_model.context_model and
             main_model.context_model is not main_model):
             output = f"Context model: {main_model.context_model.name}"
             lines.append(output)
@@ -308,7 +308,7 @@ class Coder:
             lines.append(f"Added {rel_fname} to the chat (read-only).")
 
         if self.done_messages:
-            lines.append("Restored previous conversation history.")
+            lines.append("Restored previous conversation context and history.")
 
         if self.io.multiline_mode:
             lines.append("Multiline mode: Enabled. Enter inserts newline, Alt-Enter submits text")
@@ -542,6 +542,19 @@ class Coder:
             if history_md:
                 self.done_messages = utils.split_chat_history_markdown(history_md)
                 self.summarize_start()
+
+            # Restore context files from context history file
+            context_history = self.io.read_text(self.io.context_history_file, silent=True)
+            if context_history:
+                for line in context_history.strip().split('\n'):
+                    if ':' in line:
+                        cmd, fname = line.split(':', 1)
+                        abs_fname = self.abs_root_path(fname)
+                        if os.path.exists(abs_fname):
+                            if cmd == 'add':
+                                self.abs_fnames.add(abs_fname)
+                            elif cmd == 'read-only':
+                                self.abs_read_only_fnames.add(abs_fname)
 
         # Linting and testing
         self.linter = Linter(root=self.root, encoding=io.encoding)
@@ -890,6 +903,9 @@ class Coder:
         self.test_outcome = None
         self.shell_commands = []
         self.message_cost = 0
+
+        # Save current context to context history file
+        self.io.save_context_history(self.abs_fnames, self.abs_read_only_fnames, self.root)
 
         if self.repo:
             self.commit_before_message.append(self.repo.get_head_commit_sha())

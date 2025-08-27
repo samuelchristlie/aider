@@ -317,8 +317,13 @@ class InputOutput:
         self.llm_history_file = llm_history_file
         if chat_history_file is not None:
             self.chat_history_file = Path(chat_history_file)
+            # Derive context history file from chat history file
+            chat_history_path = Path(chat_history_file)
+            context_history_name = chat_history_path.stem.replace(".chat.history", ".context.history") + chat_history_path.suffix
+            self.context_history_file = chat_history_path.with_name(context_history_name)
         else:
             self.chat_history_file = None
+            self.context_history_file = None
 
         self.encoding = encoding
         valid_line_endings = {"platform", "lf", "crlf"}
@@ -1134,6 +1139,25 @@ class InputOutput:
                 print(f"Warning: Unable to write to chat history file {self.chat_history_file}.")
                 print(err)
                 self.chat_history_file = None  # Disable further attempts to write
+
+    def save_context_history(self, abs_fnames, abs_read_only_fnames, root_path):
+        """Save the current context (files) to the context history file"""
+        if self.context_history_file is not None:
+            try:
+                self.context_history_file.parent.mkdir(parents=True, exist_ok=True)
+                with self.context_history_file.open("w", encoding=self.encoding, errors="ignore") as f:
+                    # Write editable files
+                    for fname in sorted(abs_fnames):
+                        rel_fname = os.path.relpath(fname, root_path)
+                        f.write(f"add:{rel_fname}\n")
+                    
+                    # Write read-only files
+                    for fname in sorted(abs_read_only_fnames):
+                        rel_fname = os.path.relpath(fname, root_path)
+                        f.write(f"read-only:{rel_fname}\n")
+            except (PermissionError, OSError) as err:
+                print(f"Warning: Unable to write to context history file {self.context_history_file}.")
+                print(err)
 
     def format_files_for_input(self, rel_fnames, rel_read_only_fnames):
         if not self.pretty:
